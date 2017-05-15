@@ -1,19 +1,25 @@
 
 * TODO setup learn project [1/3]
-  - [X] plan
+  - [X] layout
         - note/code repository
         - environment
           - cpu docker
           - gpu docker
         - material host
+          - name
+            /ml/storage/data/bazhou
           - tool docker image
-          - repository
+          - note/code repository
           - document search
             - build dash
             - elasticsearch
-          - storage
+          - sync
             - without network local sync
             - CDN backup
+          - daemon
+            - index
+            - backup
+            - serve
   - [ ] problems
   - [ ] material
         - book
