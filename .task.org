@@ -19,9 +19,9 @@
           - daemon
             - index
             - backup
-            - serve
+            - serve static file
   - [ ] problems
-  - [ ] material
+  - [ ] collect materials
         - book
         - video
         - data set
