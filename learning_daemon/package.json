@@ -1,0 +1,24 @@
+{
+    "name": "learning_daemon",
+    "version": "1.0.0",
+    "description": "Learning daemon for Bartuer",
+    "main": "server.js",
+    "scripts": {
+        "blob": "mocha --watch test/00_blob.test.js"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/bartuer/ml.git"
+    },
+    "keywords": [
+        "machine",
+        "learning",
+        "notebook"
+    ],
+    "author": "Bartuer",
+    "license": "MIT",
+    "bugs": {
+        "url": "https://github.com/bartuer/ml/issues"
+    },
+    "homepage": "https://github.com/bartuer/ml#readme"
+}

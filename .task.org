@@ -1,5 +1,5 @@
 
-* TODO setup learn project [1/3]
+* TODO setup learn project [2/3]
   - [X] layout
         - note/code repository
         - environment
@@ -15,17 +15,28 @@
             - elasticsearch
           - sync
             - without network local sync
-            - CDN backup
+            - blob storage to CDN
           - daemon
-            - index
-            - backup
+            - git push hook
+            - backup (Azure blob storage)
+            - index (Azure search)
             - serve static file
-  - [ ] problems
-  - [ ] collect materials
+  - [X] collect materials
         - book
         - video
         - data set
         - note
         - code
-* 
-  
+  - [ ] problems
+* TODO learn daemon [1/4]
+  CLOCK: [2017-05-16 Tue 01:38]
+  - [X] container mount AFS folder
+        or folder on USB stick
+  - [ ] trigger by webhook
+        from github, or a simple curl to sync
+  - [ ] rsync 
+        - parallel 
+          https://github.com/parallel-js/parallel.js?utm_source=dlvr.it&utm_medium=twitter
+        - md5 check
+        - invoke search API for changed document
+  - [ ] Azure search API

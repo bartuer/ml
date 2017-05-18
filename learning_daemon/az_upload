@@ -1,0 +1,48 @@
+#!/bin/bash
+# mime: npm install mime --save-dev
+# jq: https://stedolan.github.io/jq/
+
+
+:<<DOCUMENT_OF_upload
+   upload is incremental and parallel.
+
+   That means when file is different with the version on Azure blob storage it will be uploaded,
+   and upload in parallel.
+
+   If file content is not changed, 'done:the file' will be output, otherwise, upload details
+   print out, include:
+   - upload path
+   - size
+   - contentType
+   - speed
+
+   The script depend on below tools, make sure they are available before invoking:
+   - azure
+   - mime
+   - jq
+   - curl
+   - openssl
+   - grep, find, sed, cut, tr
+
+
+DOCUMENT_OF_upload
+
+azure_upload() {
+    CDN_URL="http://bazhou.azureedge.net"
+    CONTAINER="learning"
+    f=$1
+    RMD5=$(curl -q -I $CDN_URL/$CONTAINER/$f 2>/dev/null | grep MD5 | cut -f 2 -d ":" | tr -d ' ' | tr -d '\r')
+    LMD5=$(openssl dgst -binary $f | openssl enc -base64)
+    if [[ $RMD5 = $LMD5 ]]; then
+        echo 'done : '$f $LMD5
+    else
+        CONTENT_TYPE=$(file -b -i $f)
+        echo 'upload : '$f $CONTENT_TYPE
+        azure storage blob upload -q --json -t Block -p "ContentType='$CONTENT_TYPE'"  $f $CONTAINER $f | jq '{name:(.container + "/" + .blob), mime:.contentType, length:.contentLength, speed:.transferSummary.averageSpeed, md5:.contentMD5}'
+    fi
+}
+
+export SHELL=$(type -p bash)
+export -f azure_upload
+
+find $1 -type f |xargs parallel azure_upload :::
