@@ -2,6 +2,7 @@
 var http = require('http');
 var crypto = require('crypto');
 var blobClient = require('azure-storage').createBlobService();
+var async = require('async');
 var stream = require('stream');
 var mime = require('mime-types');
 var fs = require('fs');
@@ -25,7 +26,7 @@ var fs = require('fs');
             if (res.statusCode === 200) {
                 cb(null, res.headers["content-md5"]);
             } else {
-                cb(new Error("no md5"), res.statusCode);
+                cb(null, 'no md5');
             }
         });
         req.end();
@@ -54,18 +55,49 @@ var fs = require('fs');
             contentType: mime.lookup(option.file_path) || 'application/octet-stream',
             cacheControl: "max-age=720000"
         };
-        var s = blobClient.createWriteStreamToBlockBlob(container, option.uri_in_container, upload_option, function (err) {
-            if (err) {
-                cb(err);
-            } else {
-                cb(null, {
-                    contenttype: mime.lookup(option.file_path),
-                    name: option.file_path,
-                    url: option.uri_in_container
-                });
-            }
-        });
+        var s = blobClient.createWriteStreamToBlockBlob(
+            container,
+            option.uri_in_container,
+            upload_option,
+            function (err) {
+                if (err) {
+                    cb(err);
+                } else {
+                    cb(null, {
+                        contenttype: mime.lookup(option.file_path),
+                        file: option.file_path,
+                        url: option.uri_in_container,
+                        status: 'uploading'
+                    });
+                }
+            });
         fs.createReadStream(option.file_path).pipe(s);
+    };
+
+    exports.sync = function (option, cb) {
+        async.parallel([
+                function (callback) {
+                    exports.rmd5(option.uri_in_container, callback);
+                },
+                function (callback) {
+                    exports.lmd5(option.file_path, callback);
+                }
+            ],
+            function (err, results) {
+                if (err) {
+                    cb(err, {
+                        status: 'error'
+                    });
+                } else {
+                    if (results[0] === results[1]) {
+                        cb(null, {
+                            status: 'done'
+                        });
+                    } else {
+                        exports.upload(option, cb);
+                    }
+                }
+            });
     };
 
     Object.defineProperty(exports, '__esModule', {
