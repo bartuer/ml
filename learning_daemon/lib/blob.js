@@ -1,11 +1,12 @@
 /*global define, require, module, console, debug, exports, process, Buffer, setImmediate, setTimeout, setInterval, clearInterval */
-var http = require('http');
-var crypto = require('crypto');
-var blobClient = require('azure-storage').createBlobService();
-var async = require('async');
-var stream = require('stream');
-var mime = require('mime-types');
-var fs = require('fs');
+const http = require('http');
+const crypto = require('crypto');
+const blobClient = require('azure-storage').createBlobService();
+const async = require('async');
+const stream = require('stream');
+const mime = require('mime-types');
+const fs = require('fs');
+const spawn = require('child_process').spawn;
 
 (function (global, factory) {
     typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
@@ -98,6 +99,19 @@ var fs = require('fs');
                     }
                 }
             });
+    };
+
+    exports.find = function (path, cb, final) {
+        const cmd = spawn('find', [path, '-type', 'f']);
+        cmd.stdout.on('data', function (data) {
+            cb(data);
+        });
+
+        cmd.on('close', function () {
+            if (typeof final === 'function') {
+                final();
+            }
+        });
     };
 
     Object.defineProperty(exports, '__esModule', {

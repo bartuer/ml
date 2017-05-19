@@ -4,7 +4,8 @@
     "description": "Learning daemon for Bartuer",
     "main": "server.js",
     "scripts": {
-        "blob": "mocha --watch test/00_blob.test.js"
+        "blob": "mocha --watch test/00_blob.test.js",
+        "find": "mocha --watch test/01_find.test.js"
     },
     "repository": {
         "type": "git",
