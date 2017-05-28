@@ -6,10 +6,13 @@ const numCPUs = require('os').cpus().length;
 const net = require('net');
 const line_port = 8012;
 const report_port = 8013;
-/*
-time find ~/local/src -type f |parallel --xargs md5sum > /tmp/md5s && wc -l /tmp/md5s
-time node ctest.js >/tmp/files && wc -l /tmp/files
+
+/* only calculate about 40k files' MD5 performance like
+time find ~/local/src -type f |parallel --xargs md5sum > /tmp/md5s && wc -l /tmp/md5s # 1.73
+time node ctest.js >/tmp/files && wc -l /tmp/files # 1.88 ~ 2.3
+time find ~/local/src -type f |quote0|xargs -0 md5sum  > /tmp/md5s && wc -l /tmp/md5s # 3.8
  */
+
 if (cluster.isMaster) {
     console.error(`Master ${process.pid} is running`);
     let total = 0;
