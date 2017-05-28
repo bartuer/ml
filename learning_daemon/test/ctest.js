@@ -2,21 +2,31 @@
 var blob = require('../lib/blob.js');
 const async = require('async');
 const cluster = require('cluster');
-const http = require('http');
 const numCPUs = require('os').cpus().length;
-const dgram = require('dgram');
 const net = require('net');
-var remain = '';
-var count = 0;
-var input_len = 0;
 const line_port = 8012;
 const report_port = 8013;
+/*
+time find ~/local/src -type f |parallel --xargs md5sum > /tmp/md5s && wc -l /tmp/md5s
+time node ctest.js >/tmp/files && wc -l /tmp/files
+ */
 if (cluster.isMaster) {
     console.error(`Master ${process.pid} is running`);
+    let total = 0;
+    var total_entries = 0;
+    var messageHandler = function (msg) {
+        total += msg.count;
+        if (total === total_entries) {
+            // cluster.disconnect();
+            process.exit();
+        }
+    };
 
     // Fork workers.
     for (let i = 0; i < numCPUs; i++) {
-        cluster.fork();
+        var worker = cluster.fork();
+        worker.setMaxListeners(numCPUs + 1);
+        worker.on('message', messageHandler);
     }
     var connect_pool = new Set();
     var report_server = net.createServer(c => {
@@ -26,6 +36,7 @@ if (cluster.isMaster) {
                 var pid = JSON.parse(msg).pid;
                 connect_pool.add(pid);
                 if (connect_pool.size === numCPUs) {
+                    report_server.unref();
                     report_server.close();
                 }
             }
@@ -44,7 +55,9 @@ if (cluster.isMaster) {
     });
     report_server.on('close', function () {
         console.error('report server closed');
-        var buffer_len = numCPUs;
+        var remain = '';
+        var input_len = 0;
+        var buffer_len = numCPUs / 2;
         var c = 0;
         var q = async.queue(function (task, callback) {
             var dispatcher = net.connect({
@@ -56,12 +69,6 @@ if (cluster.isMaster) {
                     console.error('send error:', err);
                 } else {
                     // console.error('send:', c, input_len);
-                    if (c === 30763) {
-                        setTimeout(function () {
-                            process.exit();
-                        }, 1000);
-                    }
-
                     dispatcher.end();
                 }
                 callback();
@@ -69,7 +76,11 @@ if (cluster.isMaster) {
             });
         }, numCPUs);
 
+        q.saturated = function () {
+            console.error('pressure on queue:', q.concurrency);
+        };
         q.drain = function () {
+            total_entries = c;
             // console.error("queue drain");
         };
 
@@ -81,6 +92,7 @@ if (cluster.isMaster) {
                 remain = '';
             }
             input_len += lines.length;
+            total_entries = input_len;
             var i = 0;
             while (i < lines.length) {
                 var send_buf = [];
@@ -90,7 +102,7 @@ if (cluster.isMaster) {
                     if (lines[j] && lines[j].length > 0) {
                         send_buf.push(lines[j]);
                     } else {
-                        console.error('error ', i, j, len, lines.length);
+                        // console.error('buffer edge ', i, j, len, lines.length);
                     }
                 }
                 q.push({
@@ -111,6 +123,7 @@ if (cluster.isMaster) {
     });
 
     var worker_server = net.createServer(c => {
+        var count = 0;
         var msg = '';
         var q = async.queue(function (task, callback) {
             const file_paths = task.files;
@@ -122,10 +135,11 @@ if (cluster.isMaster) {
                             result += 1;
                         } else {
                             result += 1;
-                            console.log(process.pid, file_path, md5);
+                            console.log(md5, file_path);
                         }
 
                         if (result === task.files.length) {
+                            count = result;
                             callback();
                         }
                     });
@@ -133,11 +147,14 @@ if (cluster.isMaster) {
             });
         }, 1);
 
-        q.drain = function () {
-            setTimeout(function () {
+        q.saturated = function () {};
 
-            }, 100);
-            // console.error("worker", process.pid, 'drain');
+        q.drain = function () {
+            process.send({
+                pid: process.pid,
+                count: count
+            });
+            count = 0;
         };
 
         c.on('end', error => {
@@ -163,7 +180,7 @@ if (cluster.isMaster) {
         }), 'utf-8', function (err) {
             connect_reporter.end();
         });
-        console.error(`worker ${process.pid} listening on ${address.address}:${address.port}`);
+        // console.error(`worker ${process.pid} listening on ${address.address}:${address.port}`);
     });
     worker_server.listen(line_port);
     process.on('message', msg => {
