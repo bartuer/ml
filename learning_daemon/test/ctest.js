@@ -5,48 +5,74 @@ const cluster = require('cluster');
 const http = require('http');
 const numCPUs = require('os').cpus().length;
 const dgram = require('dgram');
+const net = require('net');
 var remain = '';
 var count = 0;
 var input_len = 0;
 const line_port = 8012;
 const report_port = 8013;
 if (cluster.isMaster) {
-    // console.log(`Master ${process.pid} is running`);
+    console.error(`Master ${process.pid} is running`);
 
     // Fork workers.
     for (let i = 0; i < numCPUs; i++) {
         cluster.fork();
     }
-
-    var report_server = dgram.createSocket('udp6');
-    report_server.bind(report_port);
+    var connect_pool = new Set();
+    var report_server = net.createServer(c => {
+        var msg = '';
+        c.on('end', err => {
+            if (!err) {
+                var pid = JSON.parse(msg).pid;
+                connect_pool.add(pid);
+                if (connect_pool.size === numCPUs) {
+                    report_server.close();
+                }
+            }
+        });
+        c.on('data', chunk => {
+            msg += chunk;
+        });
+    });
+    report_server.listen(report_port);
     report_server.on('error', err => {
-        // console.error(err);
-        report_server.close();
+        console.error(err);
     });
     report_server.on('listening', () => {
         var address = report_server.address();
-        // console.log(`M${process.pid} listen :${address.port}`);
+        console.error(`Master ${process.pid} listen :${address.port}`);
     });
-    report_server.once('message', (msg, rinfo) => {
-        // console.log('worker available', rinfo);
-        var dispatcher = dgram.createSocket('udp6');
-        var buffer_len = 12;
+    report_server.on('close', function () {
+        console.error('report server closed');
+        var buffer_len = numCPUs;
         var c = 0;
         var q = async.queue(function (task, callback) {
-            dispatcher.send(Buffer.from(JSON.stringify(task.send_buf)), line_port, 'localhost', function (err) {
-                c += task.send_buf.length;
+            var dispatcher = net.connect({
+                port: line_port
+            });
+            c += task.send_buf.length;
+            dispatcher.write(JSON.stringify(task.send_buf), 'utf-8', function (err) {
                 if (err) {
-                    console.log('send error:', err);
+                    console.error('send error:', err);
                 } else {
-                    console.log('send:', c, input_len);
+                    // console.error('send:', c, input_len);
+                    if (c === 30763) {
+                        setTimeout(function () {
+                            process.exit();
+                        }, 1000);
+                    }
+
+                    dispatcher.end();
                 }
                 callback();
+
             });
-        }, numCPUs / 8);
+        }, numCPUs);
+
         q.drain = function () {
-            // console.log("queue drain");
+            // console.error("queue drain");
         };
+
         blob.find('/home/bazhou/local/src', function (buf) {
             var lines = [remain, buf.toString()].join('').split('\n');
             if (lines[lines.length - 1].length > 0) {
@@ -55,116 +81,97 @@ if (cluster.isMaster) {
                 remain = '';
             }
             input_len += lines.length;
-            var i;
-
-            for (i = 0; i < lines.length; i += buffer_len) {
+            var i = 0;
+            while (i < lines.length) {
                 var send_buf = [];
-                var len = i + ((i + buffer_len < lines.length) ? buffer_len : lines.length % buffer_len);
+                var len = i + ((i + buffer_len < lines.length) ? buffer_len : (lines.length - i));
                 var j;
                 for (j = i; j < len; j += 1) {
-                    send_buf.push(lines[j]);
+                    if (lines[j] && lines[j].length > 0) {
+                        send_buf.push(lines[j]);
+                    } else {
+                        console.error('error ', i, j, len, lines.length);
+                    }
                 }
                 q.push({
                     send_buf: send_buf
                 });
+                i = j;
             }
         }, function final() {});
-    });
-    report_server.on('message', (msg, rinfo) => {
-        var results = JSON.parse(msg.toString());
-        if (!results.i) {
-            results.forEach(function (result) {
-                if (result.f) {
-                    count += 1;
-                    console.log(`bazhoucount: ${count}/${input_len}`, result.p, result.f, result.m ? result.m : result.e);
-                    if (count > 30670) {
-                        for (const id in cluster.workers) {
-                            cluster.workers[id].kill();
-                        }
-                        cluster.disconnect();
-                        report_server.unref();
-                        setTimeout(function () {
-                            process.exit();
-                        }, 0);
-                    }
-                } else {
-                    // console.log(result);
-                }
-            });
-        }
+
     });
     cluster.on('exit', (worker, code, signal) => {
-        // console.log(`worker ${worker.process.pid} died`);
+        console.error(`worker ${worker.process.pid} died`);
     });
 
 } else {
-    var connect_reporter = dgram.createSocket('udp6');
-    var worker_server = dgram.createSocket('udp6');
-    worker_server.on('error', err => {
-        console.error(err);
-        worker_server.close();
+    var connect_reporter = net.connect({
+        port: report_port
     });
-    worker_server.bind(line_port);
-    var q = async.queue(function (task, callback) {
 
-        const file_paths = task.files;
-        const result = [];
-        var reporter = dgram.createSocket('udp6');
-        file_paths.forEach(function (file_path) {
-            if (file_path) {
-                blob.lmd5(file_path, function (err, md5) {
-                    if (err) {
-                        result.push({
-                            e: err.toString(),
-                            f: file_path,
-                            p: process.pid
-                        });
-                    } else {
-                        result.push({
-                            m: md5,
-                            f: file_path,
-                            p: process.pid
-                        });
-                    }
+    var worker_server = net.createServer(c => {
+        var msg = '';
+        var q = async.queue(function (task, callback) {
+            const file_paths = task.files;
+            var result = 0;
+            file_paths.forEach(function (file_path) {
+                if (file_path) {
+                    blob.lmd5(file_path, function (err, md5) {
+                        if (err) {
+                            result += 1;
+                        } else {
+                            result += 1;
+                            console.log(process.pid, file_path, md5);
+                        }
 
-                    if (result.length === task.files.length) {
-                        reporter.send(Buffer.from(JSON.stringify(result)), report_port, 'localhost', function () {
-                            console.log('bazhoumd5', result.length);
-                            reporter.close();
+                        if (result === task.files.length) {
                             callback();
-                        });
-                    }
+                        }
+                    });
+                }
+            });
+        }, 1);
+
+        q.drain = function () {
+            setTimeout(function () {
+
+            }, 100);
+            // console.error("worker", process.pid, 'drain');
+        };
+
+        c.on('end', error => {
+            if (msg) {
+                q.push({
+                    files: JSON.parse(msg)
                 });
+                msg = '';
             }
         });
-    }, 1);
-
-    worker_server.on('message', (msg, rinfo) => {
-        q.push({
-            files: JSON.parse(msg.toString())
+        c.on('data', chunk => {
+            msg += chunk;
         });
     });
-
-    q.drain = function () {
-        // console.log("worker", process.pid, 'drain');
-    };
-
+    worker_server.on('error', err => {
+        console.error(err);
+        worker_server.end();
+    });
+    worker_server.on('listening', () => {
+        var address = worker_server.address();
+        connect_reporter.write(JSON.stringify({
+            pid: process.pid
+        }), 'utf-8', function (err) {
+            connect_reporter.end();
+        });
+        console.error(`worker ${process.pid} listening on ${address.address}:${address.port}`);
+    });
+    worker_server.listen(line_port);
     process.on('message', msg => {
         if (msg === 'disconnect') {
-            // console.log(process.pid, 'receive disconnect command');
+            console.error(process.pid, 'receive disconnect command');
             worker_server.unref();
             cluster.worker.disconnect();
             cluster.worker.kill();
         }
     });
-    worker_server.on('listening', () => {
-        var address = worker_server.address();
-        connect_reporter.send(Buffer.from(JSON.stringify({
-            i: true
-        })), report_port, 'localhost', function () {
-            connect_reporter.close();
-        });
-        // console.log(`worker ${process.pid} listening on ${address.address}:${address.port}`);
-    });
-
 }
