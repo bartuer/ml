@@ -7,10 +7,11 @@ const net = require('net');
 const line_port = 8012;
 const report_port = 8013;
 
-/* only calculate about 40k files' MD5 performance like
-time find ~/local/src -type f |parallel --xargs md5sum > /tmp/md5s && wc -l /tmp/md5s # 1.73
-time node ctest.js >/tmp/files && wc -l /tmp/files # 1.88 ~ 2.3
-time find ~/local/src -type f |quote0|xargs -0 md5sum  > /tmp/md5s && wc -l /tmp/md5s # 3.8
+/*
+ only calculate about 40k files' MD5 performance like
+ time find ~/local/src -type f |parallel --xargs md5sum > /tmp/md5s && wc -l /tmp/md5s # 1.73
+ time node ctest.js >/tmp/files && wc -l /tmp/files # 1.88 ~ 2.3
+ time find ~/local/src -type f |quote0|xargs -0 md5sum  > /tmp/md5s && wc -l /tmp/md5s # 3.8
  */
 
 if (cluster.isMaster) {
@@ -33,13 +34,23 @@ if (cluster.isMaster) {
 
     function init_task() {
         /*
-         connection ACK done: 296.687ms
-         workers online done: 133.584ms
+         performance analyse between parallel and nodejs cluster
+         - cluster setup need 300ms on 16 core machine, and
+           binding time after online about 163ms can not reduce
+           connection ACK done: 296.687ms
+           workers online done: 133.584ms
+         - base64 encode or debug I/O
+           no visible performance impact
+         - if there are huge file cluster solution stand out
+           parallel 0m19.670s
+           cluster  0m9.817s
+           parallel 0m25.774s
+           cluster  0m17.067s
          console.timeEnd('connection ACK done');
         */
         var remain = '';
         var input_len = 0;
-        var buffer_len = numCPUs / 2;
+        var buffer_len = numCPUs * 2;
         var c = 0;
         var q = async.queue(function (task, callback) {
             var dispatcher = net.connect({
@@ -119,7 +130,7 @@ if (cluster.isMaster) {
     });
     report_server.on('listening', () => {
         var address = report_server.address();
-        console.error(`Master.${process.pid} connect ACK  on :${address.port}`);
+        console.error(`master.${process.pid} connect ACK  on :${address.port}`);
     });
 
     cluster.on('exit', (worker, code, signal) => {
