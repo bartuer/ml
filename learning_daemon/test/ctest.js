@@ -31,36 +31,12 @@ if (cluster.isMaster) {
         worker.on('message', messageHandler);
     }
 
-    var connect_pool = new Set();
-    var report_server = net.createServer(c => {
-        var msg = '';
-        c.on('end', err => {
-            if (!err) {
-                var pid = JSON.parse(msg).pid;
-                connect_pool.add(pid);
-                if (connect_pool.size === numCPUs) {
-                    report_server.unref();
-                    report_server.close();
-                }
-            }
-        });
-        c.on('data', chunk => {
-            msg += chunk;
-        });
-    });
-    report_server.listen(report_port);
-    report_server.on('error', err => {
-        console.error(err);
-    });
-    report_server.on('listening', () => {
-        var address = report_server.address();
-        console.error(`Master.${process.pid} connect ACK  on :${address.port}`);
-    });
-    report_server.on('close', function () {
+    function init_task() {
         /*
          connection ACK done: 296.687ms
+         workers online done: 133.584ms
+         console.timeEnd('connection ACK done');
         */
-        console.timeEnd('connection ACK done');
         var remain = '';
         var input_len = 0;
         var buffer_len = numCPUs / 2;
@@ -117,12 +93,38 @@ if (cluster.isMaster) {
                 i = j;
             }
         }, function final() {});
+    }
 
+    var connect_pool = new Set();
+    var report_server = net.createServer(c => {
+        var msg = '';
+        c.on('end', err => {
+            if (!err) {
+                var pid = JSON.parse(msg).pid;
+                connect_pool.add(pid);
+                if (connect_pool.size === numCPUs) {
+                    init_task();
+                    report_server.unref();
+                    report_server.close();
+                }
+            }
+        });
+        c.on('data', chunk => {
+            msg += chunk;
+        });
     });
+    report_server.listen(report_port);
+    report_server.on('error', err => {
+        console.error(err);
+    });
+    report_server.on('listening', () => {
+        var address = report_server.address();
+        console.error(`Master.${process.pid} connect ACK  on :${address.port}`);
+    });
+
     cluster.on('exit', (worker, code, signal) => {
         console.error(`worker.${worker.process.pid} disconnect EXIT ${code} SIGNAL ${signal}`);
     });
-
 } else {
     var connect_reporter = net.connect({
         port: report_port
@@ -189,5 +191,4 @@ if (cluster.isMaster) {
         console.error(err);
         worker_server.end();
     });
-
 }
