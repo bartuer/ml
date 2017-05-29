@@ -14,14 +14,13 @@ time find ~/local/src -type f |quote0|xargs -0 md5sum  > /tmp/md5s && wc -l /tmp
  */
 
 if (cluster.isMaster) {
-    console.error(`Master ${process.pid} is running`);
+    console.time('connection ACK done');
     let total = 0;
     var total_entries = 0;
     var messageHandler = function (msg) {
         total += msg.count;
         if (total === total_entries) {
-            // cluster.disconnect();
-            process.exit();
+            cluster.disconnect();
         }
     };
 
@@ -31,6 +30,7 @@ if (cluster.isMaster) {
         worker.setMaxListeners(numCPUs + 1);
         worker.on('message', messageHandler);
     }
+
     var connect_pool = new Set();
     var report_server = net.createServer(c => {
         var msg = '';
@@ -54,10 +54,13 @@ if (cluster.isMaster) {
     });
     report_server.on('listening', () => {
         var address = report_server.address();
-        console.error(`Master ${process.pid} listen :${address.port}`);
+        console.error(`Master.${process.pid} connect ACK  on :${address.port}`);
     });
     report_server.on('close', function () {
-        console.error('report server closed');
+        /*
+         connection ACK done: 296.687ms
+        */
+        console.timeEnd('connection ACK done');
         var remain = '';
         var input_len = 0;
         var buffer_len = numCPUs / 2;
@@ -80,7 +83,7 @@ if (cluster.isMaster) {
         }, numCPUs);
 
         q.saturated = function () {
-            console.error('pressure on queue:', q.concurrency);
+            // console.error('pressure on queue:', q.concurrency);
         };
         q.drain = function () {
             total_entries = c;
@@ -117,7 +120,7 @@ if (cluster.isMaster) {
 
     });
     cluster.on('exit', (worker, code, signal) => {
-        console.error(`worker ${worker.process.pid} died`);
+        console.error(`worker.${worker.process.pid} disconnect EXIT ${code} SIGNAL ${signal}`);
     });
 
 } else {
@@ -172,10 +175,7 @@ if (cluster.isMaster) {
             msg += chunk;
         });
     });
-    worker_server.on('error', err => {
-        console.error(err);
-        worker_server.end();
-    });
+    worker_server.listen(line_port);
     worker_server.on('listening', () => {
         var address = worker_server.address();
         connect_reporter.write(JSON.stringify({
@@ -183,15 +183,11 @@ if (cluster.isMaster) {
         }), 'utf-8', function (err) {
             connect_reporter.end();
         });
-        // console.error(`worker ${process.pid} listening on ${address.address}:${address.port}`);
+        console.error(`worker.${process.pid} receive task on :${address.port}`);
     });
-    worker_server.listen(line_port);
-    process.on('message', msg => {
-        if (msg === 'disconnect') {
-            console.error(process.pid, 'receive disconnect command');
-            worker_server.unref();
-            cluster.worker.disconnect();
-            cluster.worker.kill();
-        }
+    worker_server.on('error', err => {
+        console.error(err);
+        worker_server.end();
     });
+
 }
