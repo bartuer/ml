@@ -1,0 +1,24 @@
+
+* TODO folder sync [4/4]
+  CLOCK: [2017-06-04 Sun 05:56]
+  :PROPERTIES:
+  :Clockhistory: 2
+  | :Clock1: | [2017-06-04 Sun 00:43]--[2017-06-04 Sun 02:39] =>  1:56 | callback   |  116 |
+  | :Clock2: | [2017-06-04 Sun 02:45]--[2017-06-04 Sun 03:36] =>  0:51 | callback 2 |   51 |
+  |          |                                                         |            | 2.78 |
+  #+TBLFM: $4='(convert-time-to-minutes $2)::@3$4=vsum(@1..@2)/60;%.2f
+  :END:
+  - [X] lmd5 calculation
+        - blob.sync not callback in async.queue
+  - [X] file lost
+        - connect timeout crash
+        - /etc/hosts
+  - [X] worker die/idle
+        - DNS error bring down worker
+          catch
+        - ETIMEDOUT error can not be catched
+        - 8 idle and 5 active without dynamic load balance 
+          lsof  -i tcp 2>/dev/null|grep node|grep ESTABLISHED|grep http|awk '{print $2}'|sort|uniq|wc -l
+  - [X] performance meter
+        - 10k files remote md5 about 3m33s, local md5 about 26s
+        - transfer at least 2h, 120m

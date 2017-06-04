@@ -15,7 +15,7 @@ const spawn = require('child_process').spawn;
 }(this, (function (exports) {
     'use strict';
     exports.info = "blob";
-
+    var count = 0;
     exports.rmd5 = function (path, cb) {
         var options = {
             method: 'HEAD',
@@ -23,28 +23,39 @@ const spawn = require('child_process').spawn;
             port: 80,
             path: ["/learning", path].join('/')
         };
-        var req = http.request(options, function (res) {
-            if (res.statusCode === 200) {
-                cb(null, res.headers["content-md5"]);
-            } else {
-                cb(null, 'no md5');
-            }
-        });
-        req.end();
+        try {
+            var req = http.request(options, function (res) {
+                if (res.statusCode === 200) {
+                    var md5 = res.headers["content-md5"];
+                    // console.log(path, md5);
+                    cb(null, res.headers["content-md5"]);
+                } else {
+                    cb(null, 'no md5');
+                }
+            });
+            req.setTimeout(2000);
+            req.end();
+        } catch (e) {
+            console.error('worker error', e, process.pid);
+            cb(null, 'no md5');
+        }
     };
 
     exports.lmd5 = function (path, cb) {
         try {
-            var s = new fs.ReadStream(path);
             var md5sum = crypto.createHash('md5');
-            s.on('data', function (d) {
-                md5sum.update(d);
-            });
+            md5sum.setEncoding('base64');
+            var s = fs.createReadStream(path);
             s.on('end', function () {
-                var d = md5sum.digest('base64');
-                cb(null, d);
+                s.close();
+                md5sum.end();
+                var h = md5sum.read();
+                // console.log(h, path);
+                cb(null, h);
             });
+            s.pipe(md5sum);
         } catch (e) {
+            console.error(e);
             cb(e);
         }
     };
@@ -56,41 +67,51 @@ const spawn = require('child_process').spawn;
             contentType: mime.lookup(option.file_path) || 'application/octet-stream',
             cacheControl: "max-age=720000"
         };
-        var s = blobClient.createWriteStreamToBlockBlob(
-            container,
-            option.uri_in_container,
-            upload_option,
-            function (err) {
-                if (err) {
-                    cb(err);
-                } else {
-                    cb(null, {
-                        contenttype: mime.lookup(option.file_path),
-                        file: option.file_path,
-                        url: option.uri_in_container,
-                        status: 'uploading'
-                    });
-                }
+        try {
+            var s = blobClient.createWriteStreamToBlockBlob(
+                container,
+                option.uri_in_container,
+                upload_option,
+                function (err) {
+                    if (err) {
+                        console.error(err);
+                        cb(err);
+                    } else {
+                        cb(null, {
+                            contenttype: mime.lookup(option.file_path),
+                            file: option.file_path,
+                            url: option.uri_in_container,
+                            status: 'uploading'
+                        });
+                    }
+                });
+            fs.createReadStream(option.file_path).pipe(s);
+            s.on('error', function (e) {
+                console.error(e);
+                cb(e);
             });
-        fs.createReadStream(option.file_path).pipe(s);
+        } catch (e) {
+            console.error(e);
+            cb(e);
+        }
     };
 
     exports.sync = function (option, cb) {
-        async.parallel([
-                function (callback) {
+        async.parallel({
+                rmd5: function (callback) {
                     exports.rmd5(option.uri_in_container, callback);
                 },
-                function (callback) {
+                lmd5: function (callback) {
                     exports.lmd5(option.file_path, callback);
                 }
-            ],
+            },
             function (err, results) {
                 if (err) {
                     cb(err, {
                         status: 'error'
                     });
                 } else {
-                    if (results[0] === results[1]) {
+                    if (results.lmd5 === results.rmd5) {
                         cb(null, {
                             status: 'done'
                         });

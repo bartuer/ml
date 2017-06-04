@@ -1,7 +1,5 @@
 #!/bin/bash
-# mime: npm install mime --save-dev
 # jq: https://stedolan.github.io/jq/
-
 
 :<<DOCUMENT_OF_upload
    upload is incremental and parallel.
@@ -18,11 +16,10 @@
 
    The script depend on below tools, make sure they are available before invoking:
    - azure
-   - mime
    - jq
    - curl
    - openssl
-   - grep, find, sed, cut, tr
+   - grep, file, find, sed, cut, tr
 
 
 DOCUMENT_OF_upload
