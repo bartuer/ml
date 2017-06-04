@@ -1,6 +1,4 @@
-
 * TODO folder sync [4/4]
-  CLOCK: [2017-06-04 Sun 06:57]--[2017-06-04 Sun 08:05] =>  1:08
   :PROPERTIES:
   :Clockhistory: 5
   | :Clock1: | [2017-06-04 Sun 00:43]--[2017-06-04 Sun 02:39] =>  1:56 | callback           |  116 |
@@ -11,21 +9,23 @@
   |          |                                                         |                    | 4.93 |
   #+TBLFM: $4='(convert-time-to-minutes $2)::@6$4=vsum(@1..@5)/60;%.2f
   :END:
-  - [X] lmd5 calculation
-        - blob.sync not callback in async.queue
+  - [X] lmd5 calculation, progress hang
+        - blob.sync no callback in async.queue
   - [X] file lost
         - connect timeout crash
-        - /etc/hosts
-        - raw lost
+          catch
+        - /etc/hosts remove all DNS error
+        - connection lost
           lsof  -i tcp 2>/dev/null|grep node|grep ESTABLISHED|grep http|awk "{print $2}"|sort|uniq|wc -l
           9794/10547 .92
   - [X] worker die/idle
-        - DNS error bring down worker
-          use /etc/hosts
-        - ETIMEDOUT error can not be catch ?
-        - blob itself can not accept too much HEAD request
+        - DNS ENOTFOUND error bring down worker
+          /etc/hosts can solve it
+        - ETIMEDOUT error 
+          can be catched
+        - blob service reply ECONNRESET on too much HEAD request
           have to use CDN
-        - 8 idle and 5 active without dynamic load balance 
+        - 8 idle and 5 active without dynamic load balance, connection monitor tool
           - process list
             top -p `pgrep -u bazhou -d ',' "node"`
           - active process
@@ -36,3 +36,6 @@
         - 10k files remote md5 about 3m33s, local md5 about 26s
         - transfer at least 2h, 120m
           176m59.360s 7790/10547
+        - connection reduce
+          the first 1k download take minutes but last take hours
+          reduce to 2 when begin last 1k uploading
