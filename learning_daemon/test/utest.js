@@ -2,7 +2,7 @@
 var blob = require('../lib/blob.js');
 const async = require('async');
 const cluster = require('cluster');
-const numCPUs = require('os').cpus().length;
+const numCPUs = require('os').cpus().length * 4;
 const net = require('net');
 const line_port = 8012;
 const report_port = 8013;
@@ -143,6 +143,7 @@ if (cluster.isMaster) {
                                 q_callback();
                             }
                         } else {
+                            // print bandwidth
                             console.log(result, process.pid, 'uploaded', file_path);
                             if (result === task.files.length) {
                                 count = result;

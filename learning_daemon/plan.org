@@ -1,13 +1,15 @@
 * TODO folder sync [4/4]
+  CLOCK: [2017-06-04 Sun 16:45]--[2017-06-04 Sun 17:15] =>  0:30
   :PROPERTIES:
-  :Clockhistory: 5
+  :Clockhistory: 6
   | :Clock1: | [2017-06-04 Sun 00:43]--[2017-06-04 Sun 02:39] =>  1:56 | callback           |  116 |
   | :Clock2: | [2017-06-04 Sun 02:45]--[2017-06-04 Sun 03:36] =>  0:51 | callback 2         |   51 |
   | :Clock3: | [2017-06-04 Sun 05:56]--[2017-06-04 Sun 06:41] =>  0:45 | lost rate          |   45 |
   | :Clock4: | [2017-06-04 Sun 06:41]--[2017-06-04 Sun 06:57] =>  0:16 | DNS error handling |   16 |
   | :Clock5: | [2017-06-04 Sun 06:57]--[2017-06-04 Sun 08:05] =>  1:08 | CDN for HEAD       |   68 |
-  |          |                                                         |                    | 4.93 |
-  #+TBLFM: $4='(convert-time-to-minutes $2)::@6$4=vsum(@1..@5)/60;%.2f
+  | :Clock6: | [2017-06-04 Sun 16:45]--[2017-06-04 Sun 17:15] =>  0:30 | bandwidth drop     |   30 |
+  |          |                                                         |                    | 5.43 |
+  #+TBLFM: $4='(convert-time-to-minutes $2)::@7$4=vsum(@1..@6)/60;%.2f
   :END:
   - [X] lmd5 calculation, progress hang
         - blob.sync no callback in async.queue
@@ -39,3 +41,5 @@
         - connection reduce
           the first 1k download take minutes but last take hours
           reduce to 2 when begin last 1k uploading
+        - bandwidth drop after 7hr
+          9551/10547 to 4kb
