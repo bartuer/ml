@@ -17,13 +17,14 @@ const spawn = require('child_process').spawn;
     exports.info = "blob";
     var count = 0;
     exports.rmd5 = function (path, cb) {
-        var options = {
-            method: 'HEAD',
-            host: 'bazhou.azureedge.net',
-            port: 80,
-            path: ["/learning", path].join('/')
-        };
         try {
+            // use CDN, otherwise connections will be rejected by blob service
+            var options = {
+                method: 'HEAD',
+                host: 'bazhou.azureedge.net',
+                port: 80,
+                path: ["/learning", path].join('/')
+            };
             var req = http.request(options, function (res) {
                 if (res.statusCode === 200) {
                     var md5 = res.headers["content-md5"];

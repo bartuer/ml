@@ -31,7 +31,7 @@ if (cluster.isMaster) {
     function init_task() {
         var remain = '';
         var input_len = 0;
-        var buffer_len = numCPUs / 4;
+        var buffer_len = 6;
         var c = 0;
         var q = async.queue(function (task, callback) {
             var dispatcher = net.connect({
