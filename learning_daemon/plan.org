@@ -43,3 +43,7 @@
           reduce to 2 when begin last 1k uploading
         - bandwidth drop after 7hr
           9551/10547 to 4kb
+        - total 27hr, 100% success
+          real	1623m22.216s
+          user	5m15.172s
+          sys	0m27.520s
