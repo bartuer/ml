@@ -10,7 +10,6 @@ const root = '/home/bazhou/local/src/upload/llvm';
 const container_path = 'ml/learning/test';
 
 if (cluster.isMaster) {
-    console.time('connection ACK done');
     let total = 0;
     var total_entries = 0;
     var messageHandler = function (msg) {
@@ -28,70 +27,71 @@ if (cluster.isMaster) {
         worker.on('message', messageHandler);
     }
 
-    function init_task() {
-        var remain = '';
-        var input_len = 0;
-        var buffer_len = 6;
-        var c = 0;
-        var q = async.queue(function (task, callback) {
-            var dispatcher = net.connect({
-                port: line_port
-            });
-            c += task.send_buf.length;
-            dispatcher.write(JSON.stringify(task.send_buf), 'utf-8', function (err) {
-                if (err) {
-                    console.error('send error:', err);
-                } else {
-                    // console.error('send:', c, input_len);
-                    dispatcher.end();
-                }
-                callback();
-
-            });
-        }, numCPUs);
-
-        q.saturated = function () {
-            // console.error('pressure on queue:', q.concurrency);
-        };
-        q.drain = function () {
-            total_entries = c;
-            // console.error("queue drain");
-        };
-
-        blob.find(root, function (buf) {
-            var lines = [remain, buf.toString()].join('').split('\n');
-            if (lines[lines.length - 1].length > 0) {
-                remain = lines.pop();
-            } else {
-                remain = '';
-            }
-            input_len += lines.length;
-            total_entries = input_len;
-            console.log("total_entries = ", total_entries);
-            var i = 0;
-            while (i < lines.length) {
-                var send_buf = [];
-                var len = i + ((i + buffer_len < lines.length) ? buffer_len : (lines.length - i));
-                var j;
-                for (j = i; j < len; j += 1) {
-                    if (lines[j] && lines[j].length > 0) {
-                        send_buf.push(lines[j]);
-                    } else {
-                        // console.error('buffer edge ', i, j, len, lines.length);
-                    }
-                }
-                q.push({
-                    send_buf: send_buf
-                });
-                i = j;
-            }
-        }, function final() {});
-    }
-
     var connect_pool = new Set();
     var report_server = net.createServer(c => {
         var msg = '';
         c.on('end', err => {
+            function init_task() {
+                var remain = '';
+                var input_len = 0;
+                var buffer_len = 6;
+                var c = 0;
+                var q = async.queue(function (task, callback) {
+                    var dispatcher = net.connect({
+                        port: line_port
+                    });
+                    c += task.send_buf.length;
+                    dispatcher.write(JSON.stringify(task.send_buf), 'utf-8', function (err) {
+                        if (err) {
+                            console.error('send error:', err);
+                        } else {
+                            // console.error('send:', c, input_len);
+                            dispatcher.end();
+                        }
+                        callback();
+
+                    });
+                }, numCPUs);
+
+                q.saturated = function () {
+                    // console.error('pressure on queue:', q.concurrency);
+                };
+                q.drain = function () {
+                    total_entries = c;
+                    // console.error("queue drain");
+                };
+
+                blob.find(root, function (buf) {
+                    var lines = [remain, buf.toString()].join('').split('\n');
+                    if (lines[lines.length - 1].length > 0) {
+                        remain = lines.pop();
+                    } else {
+                        remain = '';
+                    }
+                    input_len += lines.length;
+                    total_entries = input_len;
+                    console.log("total_entries = ", total_entries);
+                    var i = 0;
+                    while (i < lines.length) {
+                        var send_buf = [];
+                        var len = i + ((i + buffer_len < lines.length) ? buffer_len : (lines.length - i));
+                        var j;
+                        for (j = i; j < len; j += 1) {
+                            if (lines[j] && lines[j].length > 0) {
+                                send_buf.push(lines[j]);
+                            } else {
+                                // console.error('buffer edge ', i, j, len, lines.length);
+                            }
+                        }
+                        q.push({
+                            send_buf: send_buf
+                        });
+                        i = j;
+                    }
+                }, function final() {});
+            }
+
+
             if (!err) {
                 var pid = JSON.parse(msg).pid;
                 connect_pool.add(pid);
@@ -119,10 +119,6 @@ if (cluster.isMaster) {
         console.error(`worker.${worker.process.pid} disconnect EXIT ${code} SIGNAL ${signal}`);
     });
 } else {
-    var connect_reporter = net.connect({
-        port: report_port
-    });
-
     var worker_server = net.createServer(c => {
         var count = 0;
         var msg = '';
@@ -177,18 +173,28 @@ if (cluster.isMaster) {
             msg += chunk;
         });
     });
-    worker_server.listen(line_port);
     worker_server.on('listening', () => {
         var address = worker_server.address();
-        connect_reporter.write(JSON.stringify({
-            pid: process.pid
-        }), 'utf-8', function (err) {
-            connect_reporter.end();
-        });
-        console.error(`worker.${process.pid} receive task on :${address.port}`);
+        try {
+            var connect_reporter = net.connect({
+                port: report_port
+            });
+            connect_reporter.write(JSON.stringify({
+                pid: process.pid
+            }), 'utf-8', function (err) {
+                if (err) {
+                    console.error('write error', err);
+                } else {
+                    connect_reporter.end();
+                }
+            });
+        } catch (e) {
+            console.error('connect error', e);
+        }
     });
     worker_server.on('error', err => {
         console.error(err);
         worker_server.end();
     });
+    worker_server.listen(line_port);
 }
