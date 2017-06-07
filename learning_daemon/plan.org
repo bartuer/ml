@@ -47,3 +47,7 @@
           real	1623m22.216s
           user	5m15.172s
           sys	0m27.520s
+        - only caculate MD5
+          real	0m23.656s
+          user	0m43.596s
+          sys	0m7.732s
