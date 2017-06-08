@@ -51,3 +51,7 @@
           real	0m23.656s
           user	0m43.596s
           sys	0m7.732s
+        - 20369 files 1.7G upload 14hr 
+          real	886m26.174s
+          user	9m47.240s
+          sys	0m52.852s
