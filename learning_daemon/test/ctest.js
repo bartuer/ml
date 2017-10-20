@@ -77,7 +77,7 @@ if (cluster.isMaster) {
             // console.error("queue drain");
         };
 
-        blob.find('/home/bazhou/local/src/upload', function (buf) {
+        blob.find('/home/bazhou/local/src', function (buf) {
             var lines = [remain, buf.toString()].join('').split('\n');
             if (lines[lines.length - 1].length > 0) {
                 remain = lines.pop();

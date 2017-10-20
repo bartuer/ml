@@ -6,8 +6,8 @@ const numCPUs = require('os').cpus().length * 4;
 const net = require('net');
 const line_port = 8012;
 const report_port = 8013;
-const root = '/home/bazhou/local/src/upload';
-const container_path = 'ml/learning/uploadtest';
+const root = '/ma/bazhou/local/src/ml/learning_daemon/test/ml/package';
+const container_path = 'ml/package';
 
 if (cluster.isMaster) {
     let total = 0;
