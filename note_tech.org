@@ -1,0 +1,65 @@
+*** Thu Apr 12 10:57:57 2018 (memory tech)
+    memory tech
+    https://youtu.be/9ebJlcZMx3c?t=9m20s
+    
+    remember with fun and graph
+*** Thu Apr 12 10:31:25 2018 (10000 hours rule)
+    10000 hours rule
+    https://youtu.be/5MgBikgcWnY?t=6m9s
+    but only 20 hours to be enough good:
+    - deconstruct the skill
+    - learn enough to begin practice
+      correct yourself
+    - remove practice barries
+    - practice at least 20 hours
+    fun stuff
+    https://youtu.be/5MgBikgcWnY?t=18m9s
+*** Thu Apr 12 10:20:53 2018 (drawing make you remember twice as write down the symbbol)
+    drawing make you remember twice as write down the symbbol
+    https://youtu.be/gj3ZnKlHqxI
+    - yo do not to be an artist
+    - link concept to drawing
+*** Thu Apr 12 10:09:43 2018 (Faynman method: teach it to others with simply lanugae)
+    Faynman method: teach it to others with simply lanugae
+    https://youtu.be/_f-qkGJBPts?t=2m14s
+*** Thu Apr 12 10:02:35 2018 (cornell note layout)
+    cornell note layout
+    
+    - title
+    - body
+    - index
+    - summary
+*** Thu Apr 12 09:57:21 2018 (note technique)
+    note technique
+    https://www.youtube.com/watch?v=lQvjvi08QSk
+    
+    - layout
+    - draw graph separately
+    - colour coding system
+    - reading font
+*** Wed Apr 11 11:17:20 2018 (latex to speech is possible)
+    latex to speech is possible
+    
+    http://latex-access.sourceforge.net/
+
+*** TODO visual note course 
+    http://www.ideasarenothing.com/class/
+    - just use pen and paper
+      because device will disturb
+    - pick thin mark pen
+    - blank paper
+      finger can be rules
+      fold can create layout
+    - start from a frame
+    - write down the topic at middle
+    - write down reference
+    - slow down 
+    - high light important concept with bold font
+    - one stroke drawing
+      because eyes of human being is picky to gap in line
+    - symbol code is more visible than colour code
+      icon samples
+      https://thenounproject.com/
+    - use colour as layer
+    - scale manner
+      space is meaningful

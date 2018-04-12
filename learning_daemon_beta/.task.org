@@ -1,0 +1,26 @@
+
+* TODO Nginx service cluster [0/6]
+  - [ ] index
+  - [ ] webdav
+  - [ ] REST
+  - [ ] cache
+  - [ ] k8s script
+  - [ ] nomad job
+* Network filesystem
+*** DONE iCloud
+*** TODO Blobfuse [2/3]
+  - [X] vm driver
+  - [X] driver inside container
+  - [ ] moon cake account
+*** TODO OSSfuse [1/3]
+  - [X] aliyun account
+  - [ ] aliyun driver
+  - [ ] aliyun performance
+* TODO index service for mobile [0/4]
+  - [ ] page level
+  - [ ] semantic object render
+  - [ ] QR input
+  - [ ] merge into web cluster
+* TODO index builder for desktop [0/2]
+  - [ ] dictionary build
+  - [ ] dash index build

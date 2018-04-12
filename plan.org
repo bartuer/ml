@@ -1,7 +1,29 @@
 
-* principles [0/3]
-  - [ ] confront problem
-  - [ ] learn route
-  - [ ] one step deep a bit 
-* statistic learn
-*** 
+* essential  [3/3]
+  - [X] problem
+        - solve problem
+        - finish project
+  - [X] learn route
+        - math
+        - text book & tutorial
+        - academic community
+  - [X] domain
+        - NLP
+* notebook form factor
+  tetrahedron of notebook categories
+  - [X] visual oriented
+        - free form
+        - canvas
+  - [X] text oriented 
+        - hierarchy of concept
+        - planning
+        - reference
+          - link
+          - code
+          - formula
+        - table
+  - [ ] symbol oriented 
+        - mathematics
+        - compute
+        - 
+* linear algebra
